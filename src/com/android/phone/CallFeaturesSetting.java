@@ -296,11 +296,8 @@ public class CallFeaturesSetting extends PreferenceActivity
     private Preference mVoicemailNotificationRingtone;
     private CheckBoxPreference mVoicemailNotificationVibrate;
     private SipSharedPreferences mSipSharedPreferences;
-<<<<<<< HEAD
     private PreferenceScreen mButtonBlacklist;
-=======
     private CheckBoxPreference mNonIntrusiveInCall;
->>>>>>> 171680a... [2/3] Telephony: allow disabling non intrusive incall ui
 
     private class VoiceMailProvider {
         public VoiceMailProvider(String name, Intent intent) {
