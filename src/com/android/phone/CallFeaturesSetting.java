@@ -53,8 +53,12 @@ import android.preference.PreferenceScreen;
 import android.provider.ContactsContract.CommonDataKinds;
 import android.provider.MediaStore;
 import android.provider.Settings;
+import android.provider.Settings.SettingNotFoundException;
 import android.telephony.PhoneNumberUtils;
+import android.text.Spannable;
+import android.text.SpannableString;
 import android.text.TextUtils;
+import android.text.style.TypefaceSpan;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.WindowManager;
@@ -185,6 +189,8 @@ public class CallFeaturesSetting extends PreferenceActivity
     private static final String BUTTON_GSM_UMTS_OPTIONS = "button_gsm_more_expand_key";
     private static final String BUTTON_CDMA_OPTIONS = "button_cdma_more_expand_key";
 
+    private static final String BUTTON_CALL_UI_IN_BACKGROUND = "bg_incall_screen";
+
     private static final String VM_NUMBERS_SHARED_PREFERENCES_NAME = "vm_numbers";
 
     private static final String BUTTON_SIP_CALL_OPTIONS =
@@ -194,7 +200,7 @@ public class CallFeaturesSetting extends PreferenceActivity
     private static final String SIP_SETTINGS_CATEGORY_KEY =
             "sip_settings_category_key";
 
-    private static final String BUTTON_NON_INTRUSIVE_INCALL_KEY = "button_non_intrusive_incall";
+    private static final String FLIP_ACTION_KEY = "flip_action";
 
     private Intent mContactListIntent;
 
@@ -275,6 +281,7 @@ public class CallFeaturesSetting extends PreferenceActivity
     private CheckBoxPreference mPlayDtmfTone;
     private CheckBoxPreference mButtonAutoRetry;
     private CheckBoxPreference mButtonHAC;
+    private CheckBoxPreference mButtonCallUiInBackground;
     private ListPreference mButtonDTMF;
     private ListPreference mButtonTTY;
     private ListPreference mButtonSipCallOptions;
@@ -285,7 +292,6 @@ public class CallFeaturesSetting extends PreferenceActivity
     private CheckBoxPreference mVoicemailNotificationVibrate;
     private SipSharedPreferences mSipSharedPreferences;
     private PreferenceScreen mButtonBlacklist;
-    private CheckBoxPreference mNonIntrusiveInCall;
     private ListPreference mFlipAction;
 
     private class VoiceMailProvider {
@@ -306,7 +312,6 @@ public class CallFeaturesSetting extends PreferenceActivity
         CommandsInterface.CF_REASON_NO_REPLY,
         CommandsInterface.CF_REASON_NOT_REACHABLE
     };
-    private static final CharSequence FLIP_ACTION_KEY = "flip_action";
 
     private class VoiceMailProviderSettings {
         /**
@@ -504,6 +509,8 @@ public class CallFeaturesSetting extends PreferenceActivity
             return true;
         } else if (preference == mButtonTTY) {
             return true;
+        } else if (preference == mButtonCallUiInBackground) {
+            return true;
         } else if (preference == mButtonAutoRetry) {
             android.provider.Settings.Global.putInt(mPhone.getContext().getContentResolver(),
                     android.provider.Settings.Global.CALL_AUTO_RETRY,
@@ -543,10 +550,6 @@ public class CallFeaturesSetting extends PreferenceActivity
                 // This should let the preference use default behavior in the xml.
                 return false;
             }
-        } else if (preference == mNonIntrusiveInCall){
-            Settings.System.putInt(getContentResolver(), Settings.System.NON_INTRUSIVE_INCALL,
-                    mNonIntrusiveInCall.isChecked() ? 1 : 0);
-            return true;
         }
         return false;
     }
@@ -575,6 +578,10 @@ public class CallFeaturesSetting extends PreferenceActivity
                     Settings.System.DTMF_TONE_TYPE_WHEN_DIALING, index);
         } else if (preference == mButtonTTY) {
             handleTTYChange(preference, objValue);
+        } else if (preference == mButtonCallUiInBackground) {
+            Settings.System.putInt(mPhone.getContext().getContentResolver(),
+                    Settings.System.CALL_UI_IN_BACKGROUND,
+                    (Boolean) objValue ? 1 : 0);
         } else if (preference == mMwiNotification) {
             int mwi_notification = mMwiNotification.isChecked() ? 1 : 0;
             Settings.System.putInt(mPhone.getContext().getContentResolver(),
@@ -614,20 +621,20 @@ public class CallFeaturesSetting extends PreferenceActivity
             }
         } else if (preference == mButtonSipCallOptions) {
             handleSipCallOptionsChange(objValue);
-        }else if (preference == mFlipAction) {
-            updateFlipActionSummary((String) objValue);
+        } else if (preference == mFlipAction) {
+            int index = mFlipAction.findIndexOfValue((String) objValue);
+            Settings.System.putInt(getContentResolver(),
+                Settings.System.CALL_FLIP_ACTION_KEY, index);
+            updateFlipActionSummary(index);
         }
         // always let the preference setting proceed.
         return true;
     }
 
-    private void updateFlipActionSummary(String action) {
-        int i = Integer.parseInt(action);
+    private void updateFlipActionSummary(int value) {
         if (mFlipAction != null) {
             String[] summaries = getResources().getStringArray(R.array.flip_action_summary_entries);
-            mFlipAction.setSummary(getString(R.string.flip_action_summary, summaries[i]));
-            Settings.System.putInt(getContentResolver(), Settings.System.FLIP_ACTION_KEY,
-                    i);
+            mFlipAction.setSummary(getString(R.string.flip_action_summary, summaries[value]));
         }
     }
 
@@ -1568,8 +1575,11 @@ public class CallFeaturesSetting extends PreferenceActivity
         mButtonAutoRetry = (CheckBoxPreference) findPreference(BUTTON_RETRY_KEY);
         mButtonHAC = (CheckBoxPreference) findPreference(BUTTON_HAC_KEY);
         mButtonTTY = (ListPreference) findPreference(BUTTON_TTY_KEY);
+        mButtonCallUiInBackground =
+                (CheckBoxPreference) findPreference(BUTTON_CALL_UI_IN_BACKGROUND);
         mVoicemailProviders = (ListPreference) findPreference(BUTTON_VOICEMAIL_PROVIDER_KEY);
         mButtonBlacklist = (PreferenceScreen) findPreference(BUTTON_BLACKLIST);
+        mFlipAction = (ListPreference) findPreference(FLIP_ACTION_KEY);
 
         if (mVoicemailProviders != null) {
             mVoicemailProviders.setOnPreferenceChangeListener(this);
@@ -1580,8 +1590,6 @@ public class CallFeaturesSetting extends PreferenceActivity
                     (CheckBoxPreference) findPreference(BUTTON_VOICEMAIL_NOTIFICATION_VIBRATE_KEY);
             initVoiceMailProviders();
         }
-
-        mFlipAction = (ListPreference) findPreference(FLIP_ACTION_KEY);
 
         if (mVibrateWhenRinging != null) {
             Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
@@ -1637,11 +1645,12 @@ public class CallFeaturesSetting extends PreferenceActivity
             }
         }
 
+        if (mButtonCallUiInBackground != null) {
+            mButtonCallUiInBackground.setOnPreferenceChangeListener(this);
+        }
+
         if (mFlipAction != null) {
             mFlipAction.setOnPreferenceChangeListener(this);
-            int flipAction = Settings.System.getInt(getContentResolver(),
-                    Settings.System.FLIP_ACTION_KEY, 0);
-            mFlipAction.setDefaultValue(String.valueOf(flipAction));
         }
 
         if (!getResources().getBoolean(R.bool.world_phone)) {
@@ -1666,10 +1675,6 @@ public class CallFeaturesSetting extends PreferenceActivity
                 throw new IllegalStateException("Unexpected phone type: " + phoneType);
             }
         }
-
-        mNonIntrusiveInCall = (CheckBoxPreference) findPreference(BUTTON_NON_INTRUSIVE_INCALL_KEY);
-        mNonIntrusiveInCall.setChecked(Settings.System.getInt(getContentResolver(),
-                Settings.System.NON_INTRUSIVE_INCALL, 1) == 0 ? false : true);
 
         // create intent to bring up contact list
         mContactListIntent = new Intent(Intent.ACTION_GET_CONTENT);
@@ -1864,15 +1869,24 @@ public class CallFeaturesSetting extends PreferenceActivity
             updatePreferredTtyModeSummary(settingsTtyMode);
         }
 
+        if (mButtonCallUiInBackground != null) {
+            int callUiInBackground = Settings.System.getInt(getContentResolver(),
+                    Settings.System.CALL_UI_IN_BACKGROUND, 0);
+            mButtonCallUiInBackground.setChecked(callUiInBackground != 0);
+        }
+
+        if (mFlipAction != null) {
+            int flipAction = Settings.System.getInt(getContentResolver(),
+                    Settings.System.CALL_FLIP_ACTION_KEY, 2);
+            mFlipAction.setValue(String.valueOf(flipAction));
+            updateFlipActionSummary(flipAction);
+        }
+
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(
                 mPhone.getContext());
         if (migrateVoicemailVibrationSettingsIfNeeded(prefs)) {
             mVoicemailNotificationVibrate.setChecked(prefs.getBoolean(
                     BUTTON_VOICEMAIL_NOTIFICATION_VIBRATE_KEY, false));
-        }
-
-        if (mFlipAction != null) {
-            updateFlipActionSummary(mFlipAction.getValue());
         }
 
         lookupRingtoneName();
