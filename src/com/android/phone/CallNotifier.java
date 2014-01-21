@@ -72,7 +72,7 @@ import java.util.HashSet;
 public class CallNotifier extends Handler
         implements CallerInfoAsyncQuery.OnQueryCompleteListener {
     private static final String LOG_TAG = "CallNotifier";
-    private static final boolean DBG = 
+    private static final boolean DBG =
             (PhoneGlobals.DBG_LEVEL >= 1) && (SystemProperties.getInt("ro.debuggable", 0) == 1);
     private static final boolean VDBG = (PhoneGlobals.DBG_LEVEL >= 2);
 
@@ -500,49 +500,81 @@ public class CallNotifier extends Handler
         if (QuietHoursUtils.inQuietHours(mApplication, Settings.System.QUIET_HOURS_RINGER)) {
             if (DBG) log("Incoming call from " + number + " received during Quiet Hours.");
             // Determine what type of Quiet Hours we are in and act accordingly
-            boolean silenceRinger = false;
             int muteType = Settings.System.getInt(mApplication.getContentResolver(),
-                    Settings.System.QUIET_HOURS_RINGER, 0);
-            if (muteType == 1) {
-                if (DBG) log("The ringer is only allowed for favorite contacts");
-                silenceRinger = !isFavoriteContact(mApplication, number);
-            } else if (muteType == 2) {
-                if (DBG) log("The ringer should be muted for all callers");
-                silenceRinger = true;
-            }
-            if (silenceRinger) {
-                silenceRinger();
+                    Settings.System.QUIET_HOURS_RINGER,
+                    Settings.System.QUIET_HOURS_RINGER_ALLOW_ALL);
+
+            switch (muteType) {
+                case Settings.System.QUIET_HOURS_RINGER_CONTACTS_ONLY:
+                    if (!isContact(number, false)) {
+                        if (DBG) log("Muting ringer, caller not in contact list");
+                        silenceRinger();
+                    }
+                    break;
+                case Settings.System.QUIET_HOURS_RINGER_FAVORITES_ONLY:
+                    if (!isContact(number, true)) {
+                        if (DBG) log("Muting ringer, caller is not favorite");
+                        silenceRinger();
+                    }
+                    break;
+                case Settings.System.QUIET_HOURS_RINGER_DISABLED:
+                    if (DBG) log("Muting ringer");
+                    silenceRinger();
+                    break;
             }
         }
 
         if (VDBG) log("- onNewRingingConnection() done.");
     }
 
+    private static final String[] FAVORITE_PROJECTION = new String[] {
+        ContactsContract.PhoneLookup.STARRED
+    };
+    private static final String[] CONTACT_PROJECTION = new String[] {
+        ContactsContract.PhoneLookup.NUMBER
+    };
+
     /**
-     * Helper function used to determine if calling number is a 'Starred' caller
+     * Helper function used to determine if calling number is from person in the Contacts
+     * Optionally, it can also check if the contact is a 'Starred'or favourite contact
      */
-    private boolean isFavoriteContact(Context context, String number) {
-        final String[] projection = new String[] {ContactsContract.PhoneLookup.STARRED};
+    private boolean isContact(String number, boolean checkFavorite) {
+        if (DBG) log("isContact(): checking if " + number + " is in the contact list.");
+
         Uri lookupUri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
                 Uri.encode(number));
-        Cursor cursor = context.getContentResolver().query(lookupUri, projection,
-                       ContactsContract.PhoneLookup.NUMBER + "=?",
-                       new String[] { number}, null);
+        Cursor cursor = mApplication.getContentResolver().query(lookupUri,
+                checkFavorite ? FAVORITE_PROJECTION : CONTACT_PROJECTION,
+                ContactsContract.PhoneLookup.NUMBER + "=?",
+                new String[] { number }, null);
 
-        if (DBG) log("isFavoriteContact is checking if " + number + " is marked as a favorite.");
+        if (cursor == null) {
+            if (DBG) log("Couldn't query contacts provider");
+            return false;
+        }
 
-        // Iterate through the starred numbers and see if we have a match
-        if (cursor.moveToFirst()) {
+        try {
+            if (cursor.moveToFirst() && !checkFavorite) {
+                // All we care about is that the number is in the Contacts list
+                if (DBG) log("Number belongs to a contact");
+                return true;
+            }
+
+            // Either no result or we should check for favorite.
+            // In the former case the loop won't be entered.
             while (!cursor.isAfterLast()) {
                 if (cursor.getInt(cursor.getColumnIndex(
                         ContactsContract.PhoneLookup.STARRED)) == 1) {
-                    if (DBG) log("Yes, its a favorite.");
+                    if (DBG) log("Number belongs to a favorite");
                     return true;
                 }
                 cursor.moveToNext();
             }
+        } finally {
+            cursor.close();
         }
-        if (DBG) log("No, its not a favorite.");
+
+        if (DBG) log("A match for the number wasn't found");
         return false;
     }
 
@@ -747,7 +779,7 @@ public class CallNotifier extends Handler
      * @param c The new ringing connection.
      */
     private void ringAndNotifyOfIncomingCall(Connection c) {
-        if (PhoneUtils.isRealIncomingCall(c.getState()) && (mSilentRingerRequested == false)) {
+        if (PhoneUtils.isRealIncomingCall(c.getState()) && !mSilentRingerRequested) {
             mRinger.ring();
         } else {
             if (PhoneUtils.PhoneSettings.vibCallWaiting(mApplication)) {
