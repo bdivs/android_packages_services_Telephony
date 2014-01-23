@@ -1645,22 +1645,22 @@ public class CallFeaturesSetting extends PreferenceActivity
                 mButtonTTY = null;
             }
         }
-
-<<<<<<< HEAD
+        
+        if (mButtonNoiseSuppression != null) {
+             if (getResources().getBoolean(R.bool.has_in_call_noise_suppression)) {
+                 mButtonNoiseSuppression.setOnPreferenceChangeListener(this);
+             } else {
+                 prefSet.removePreference(mButtonNoiseSuppression);
+                 mButtonNoiseSuppression = null;
+             }
+         }
+         
         if (mFlipAction != null) {
             mFlipAction.setOnPreferenceChangeListener(this);
             int flipAction = Settings.System.getInt(getContentResolver(),
                     Settings.System.FLIP_ACTION_KEY, 0);
             mFlipAction.setDefaultValue(String.valueOf(flipAction));
-=======
-        if (mButtonNoiseSuppression != null) {
-            if (getResources().getBoolean(R.bool.has_in_call_noise_suppression)) {
-                mButtonNoiseSuppression.setOnPreferenceChangeListener(this);
-            } else {
-                prefSet.removePreference(mButtonNoiseSuppression);
-                mButtonNoiseSuppression = null;
-            }
->>>>>>> ea6e55d... Telephony: implement noise suppression for phone calls (2/2)
+
         }
 
         if (!getResources().getBoolean(R.bool.world_phone)) {
