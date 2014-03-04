@@ -1674,7 +1674,6 @@ public class CallFeaturesSetting extends PreferenceActivity
             }
         }
 
-<<<<<<< HEAD
         if (mButtonNoiseSuppression != null) {
             if (getResources().getBoolean(R.bool.has_in_call_noise_suppression)) {
                 mButtonNoiseSuppression.setOnPreferenceChangeListener(this);
@@ -1682,13 +1681,12 @@ public class CallFeaturesSetting extends PreferenceActivity
                 prefSet.removePreference(mButtonNoiseSuppression);
                 mButtonNoiseSuppression = null;
             }
-=======
+            
         if (mFlipAction != null) {
             mFlipAction.setOnPreferenceChangeListener(this);
             int flipAction = Settings.System.getInt(getContentResolver(),
                     Settings.System.FLIP_ACTION_KEY, 0);
             mFlipAction.setDefaultValue(String.valueOf(flipAction));
->>>>>>> 70e8ced... [2/3] Telephony: Flip to Mute/Reject Call
         }
 
         if (!getResources().getBoolean(R.bool.world_phone)) {
