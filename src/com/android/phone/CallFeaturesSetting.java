@@ -294,7 +294,11 @@ public class CallFeaturesSetting extends PreferenceActivity
     private SipSharedPreferences mSipSharedPreferences;
     private PreferenceScreen mButtonBlacklist;
     private CheckBoxPreference mNonIntrusiveInCall;
+<<<<<<< HEAD
+=======
+    private CheckBoxPreference mCallEndSound;
     private ListPreference mFlipAction;
+>>>>>>> 6d4de4e... [2/3] Telephony: Flip to Mute/Reject Call
 
     private class VoiceMailProvider {
         public VoiceMailProvider(String name, Intent intent) {
