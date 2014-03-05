@@ -1,7 +1,4 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
- * Not a Contribution.
- *
  * Copyright (C) 2008 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,16 +26,12 @@ import android.os.Message;
 import android.util.Log;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceScreen;
-import android.telephony.MSimTelephonyManager;
-import android.util.Log;
 import android.view.MenuItem;
 import android.view.WindowManager;
 import android.widget.Toast;
 
 import com.android.internal.telephony.CommandException;
 import com.android.internal.telephony.Phone;
-
-import static com.android.internal.telephony.MSimConstants.SUBSCRIPTION_KEY;
 
 /**
  * FDN settings UI for the Phone app.
@@ -64,11 +57,9 @@ public class FdnSetting extends PreferenceActivity
     // Preference is handled solely in xml.
     private static final String BUTTON_FDN_ENABLE_KEY = "button_fdn_enable_key";
     private static final String BUTTON_CHANGE_PIN2_KEY = "button_change_pin2_key";
-    private static final String BUTTON_FDN_KEY = "button_fdn_list_key";
 
     private EditPinPreference mButtonEnableFDN;
     private EditPinPreference mButtonChangePin2;
-    private PreferenceScreen mSubscriptionPrefFDN;
 
     // State variables
     private String mOldPin;
@@ -93,8 +84,6 @@ public class FdnSetting extends PreferenceActivity
     // size limits for the pin.
     private static final int MIN_PIN_LENGTH = 4;
     private static final int MAX_PIN_LENGTH = 8;
-
-    private int mSubscription = 0;
 
     /**
      * Delegate to the respective handlers.
@@ -299,15 +288,6 @@ public class FdnSetting extends PreferenceActivity
                                     .setMessage(R.string.puk2_requested)
                                     .setCancelable(true)
                                     .setOnCancelListener(FdnSetting.this)
-                                    .setNeutralButton(android.R.string.ok,
-                                            new DialogInterface.OnClickListener() {
-                                                @Override
-                                                public void onClick(DialogInterface dialog,
-                                                        int which) {
-                                                    resetPinChangeStateForPUK2();
-                                                    displayPinChangeDialog(0,true);
-                                                }
-                                            })
                                     .create();
                                 a.getWindow().addFlags(
                                         WindowManager.LayoutParams.FLAG_DIM_BEHIND);
@@ -471,20 +451,9 @@ public class FdnSetting extends PreferenceActivity
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
 
-        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
-            addPreferencesFromResource(R.xml.msim_fdn_setting);
-        } else {
-            addPreferencesFromResource(R.xml.fdn_setting);
-        }
+        addPreferencesFromResource(R.xml.fdn_setting);
 
-        // getting selected subscription
-        mSubscription = getIntent().getIntExtra(SUBSCRIPTION_KEY,
-                PhoneGlobals.getInstance().getDefaultSubscription());
-        Log.d(LOG_TAG, "Getting FDNSetting subscription =" + mSubscription);
-        mPhone = PhoneGlobals.getInstance().getPhone(mSubscription);
-
-        mSubscriptionPrefFDN  = (PreferenceScreen) findPreference(BUTTON_FDN_KEY);
-        mSubscriptionPrefFDN.getIntent().putExtra(SUBSCRIPTION_KEY, mSubscription);
+        mPhone = PhoneGlobals.getPhone();
 
         //get UI object references
         PreferenceScreen prefSet = getPreferenceScreen();
@@ -519,7 +488,7 @@ public class FdnSetting extends PreferenceActivity
     @Override
     protected void onResume() {
         super.onResume();
-        mPhone = PhoneGlobals.getInstance().getPhone(mSubscription);
+        mPhone = PhoneGlobals.getPhone();
         updateEnableFDN();
     }
 

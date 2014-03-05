@@ -14,12 +14,16 @@
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- -->	
- <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-     <string name="preference_category_interface">Interface</string>
-     <string name="non_intrusive_incall_title">Non intrusive</string>
-     <string name="non_intrusive_incall_summary">Use non intrusive dialog for incoming calls</string>
-     
+ -->
+
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="preference_category_interface">Interface</string>
+    <string name="non_intrusive_incall_title">Non intrusive</string>
+    <string name="non_intrusive_incall_summary">Use non intrusive dialog for incoming calls</string>
+
+    <string name="call_end_sound_title">Call end tone</string>
+    <string name="call_end_sound_summary">Play tone on end call</string>
+
     <!-- Setting title for the flip action setting. -->
     <string name="flip_action_title">Flip action</string>
 

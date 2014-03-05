@@ -1,7 +1,4 @@
 /*
- * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
- * Not a Contribution.
- *
  * Copyright (C) 2007 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,25 +19,20 @@ package com.android.phone;
 import static android.view.Window.PROGRESS_VISIBILITY_OFF;
 import static android.view.Window.PROGRESS_VISIBILITY_ON;
 
-import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.content.AsyncQueryHandler;
 import android.content.ContentResolver;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.telephony.MSimTelephonyManager;
 import android.util.Log;
 import android.view.Window;
 import android.widget.CursorAdapter;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
-
-import com.android.internal.telephony.PhoneFactory;
 
 /**
  * ADN List activity for the Phone app.
@@ -48,8 +40,6 @@ import com.android.internal.telephony.PhoneFactory;
 public class ADNList extends ListActivity {
     protected static final String TAG = "ADNList";
     protected static final boolean DBG = false;
-    protected static final int SUCCESS = 1;
-    protected static final int FAIL = 0;
 
     private static final String[] COLUMN_NAMES = new String[] {
         "name",
@@ -120,7 +110,7 @@ public class ADNList extends ListActivity {
         displayProgress(true);
     }
 
-    protected void reQuery() {
+    private void reQuery() {
         query();
     }
 
@@ -170,11 +160,11 @@ public class ADNList extends ListActivity {
                     mCursor, COLUMN_NAMES, VIEW_NAMES);
     }
 
-    protected void displayProgress(boolean loading) {
+    private void displayProgress(boolean loading) {
         if (DBG) log("displayProgress: " + loading);
 
         mEmptyText.setText(loading ? R.string.simContacts_emptyLoading:
-            ((isAirplaneModeOn(this) && !isSimPresent()) ? R.string.simContacts_airplaneMode :
+            (isAirplaneModeOn(this) ? R.string.simContacts_airplaneMode :
                 R.string.simContacts_empty));
         getWindow().setFeatureInt(
                 Window.FEATURE_INDETERMINATE_PROGRESS,
@@ -186,7 +176,7 @@ public class ADNList extends ListActivity {
                 Settings.System.AIRPLANE_MODE_ON, 0) != 0;
     }
 
-    protected class QueryHandler extends AsyncQueryHandler {
+    private class QueryHandler extends AsyncQueryHandler {
         public QueryHandler(ContentResolver cr) {
             super(cr);
         }
@@ -205,54 +195,20 @@ public class ADNList extends ListActivity {
         @Override
         protected void onInsertComplete(int token, Object cookie, Uri uri) {
             if (DBG) log("onInsertComplete: requery");
-            displayProgress(false);
-            if (uri != null) {
-                showAlertDialog(getString(R.string.contactAddSuccess));
-            } else {
-                showAlertDialog(getString(R.string.contactAddFailed));
-            }
             reQuery();
         }
 
         @Override
         protected void onUpdateComplete(int token, Object cookie, int result) {
             if (DBG) log("onUpdateComplete: requery");
-            displayProgress(false);
-            if (result == SUCCESS) {
-                showAlertDialog(getString(R.string.contactUpdateSuccess));
-            } else {
-                showAlertDialog(getString(R.string.contactUpdateFailed));
-            }
             reQuery();
         }
 
         @Override
         protected void onDeleteComplete(int token, Object cookie, int result) {
             if (DBG) log("onDeleteComplete: requery");
-            displayProgress(false);
-            if (result == SUCCESS) {
-                showAlertDialog(getString(R.string.contactdeleteSuccess));
-            } else {
-                showAlertDialog(getString(R.string.contactdeleteFailed));
-            }
             reQuery();
         }
-    }
-
-    protected void showAlertDialog(String value) {
-        AlertDialog alertDialog = new AlertDialog.Builder(this).create();
-        alertDialog.setTitle("Result...");
-        alertDialog.setMessage(value);
-        alertDialog.setButton("OK", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
-                //Just to provide information to user no need to do anything.
-            }
-        });
-        alertDialog.show();
-    }
-
-    protected boolean isSimPresent() {
-        return PhoneFactory.getDefaultPhone().getIccCard().hasIccCard();
     }
 
     protected void log(String msg) {

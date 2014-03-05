@@ -1,7 +1,4 @@
 /*
- * Copyright (c) 2012, The Linux Foundation. All rights reserved.
- * Not a Contribution.
- *
  * Copyright (C) 2008 The Android Open Source Project
  * Blacklist - Copyright (C) 2013 The CyanogenMod Project
  *
@@ -227,9 +224,6 @@ public class CallFeaturesSetting extends PreferenceActivity
     // preferred TTY mode
     // Phone.TTY_MODE_xxx
     static final int preferredTtyMode = Phone.TTY_MODE_OFF;
-
-    // dialog identifiers for TTY
-    private static final int TTY_SET_RESPONSE_ERROR = 800;
 
     public static final String HAC_KEY = "HACSetting";
     public static final String HAC_VAL_ON = "ON";
@@ -529,10 +523,6 @@ public class CallFeaturesSetting extends PreferenceActivity
         } else if (preference == mButtonDTMF) {
             return true;
         } else if (preference == mButtonTTY) {
-            if (PhoneUtils.isImsVtCallPresent()) {
-                // TTY Mode change is not allowed during a VT call
-                showDialog(TTY_SET_RESPONSE_ERROR);
-            }
             return true;
         } else if (preference == mButtonNoiseSuppression) {
             int nsp = mButtonNoiseSuppression.isChecked() ? 1 : 0;
@@ -1499,22 +1489,8 @@ public class CallFeaturesSetting extends PreferenceActivity
                     (id == VOICEMAIL_REVERTING_DIALOG ? R.string.reverting_settings :
                     R.string.reading_settings)));
             return dialog;
-        } else if (id == TTY_SET_RESPONSE_ERROR) {
-
-            AlertDialog.Builder b = new AlertDialog.Builder(this);
-
-            b.setTitle(getText(R.string.tty_mode_option_title));
-            b.setMessage(getText(R.string.tty_mode_not_allowed_vt_call));
-            b.setIconAttribute(android.R.attr.alertDialogIcon);
-            b.setPositiveButton(R.string.ok, this);
-            b.setCancelable(false);
-            AlertDialog dialog = b.create();
-
-            // make the dialog more obvious by bluring the background.
-            dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND);
-
-            return dialog;
         }
+
 
         return null;
     }
@@ -1693,6 +1669,7 @@ public class CallFeaturesSetting extends PreferenceActivity
                 mButtonTTY = null;
             }
         }
+        
         if (mButtonNoiseSuppression != null) {
              if (getResources().getBoolean(R.bool.has_in_call_noise_suppression)) {
                  mButtonNoiseSuppression.setOnPreferenceChangeListener(this);
@@ -1785,7 +1762,6 @@ public class CallFeaturesSetting extends PreferenceActivity
         updateVoiceNumberField();
         mVMProviderSettingsForced = false;
         createSipCallSettings();
-        createImsSettings();
 
         mRingtoneLookupRunnable = new Runnable() {
             @Override
@@ -1882,10 +1858,6 @@ public class CallFeaturesSetting extends PreferenceActivity
                             mSipSharedPreferences.getSipCallOption()));
             mButtonSipCallOptions.setSummary(mButtonSipCallOptions.getEntry());
         }
-    }
-
-    private void createImsSettings() {
-        addPreferencesFromResource(R.xml.ims_settings_category);
     }
 
     // Gets the call options for SIP depending on whether SIP is allowed only

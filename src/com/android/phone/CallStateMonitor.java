@@ -58,13 +58,11 @@ class CallStateMonitor extends Handler {
     public static final int PHONE_RESEND_MUTE = 12;
     public static final int PHONE_ON_DIAL_CHARS = 13;
     public static final int PHONE_SUPP_SERVICE_NOTIFY = 14;
-    public static final int PHONE_ACTIVE_SUBSCRIPTION_CHANGE = 15;
-    public static final int PHONE_CALL_MODIFY = 16;
 
     // Other events from call manager
     public static final int EVENT_OTA_PROVISION_CHANGE = 20;
 
-    protected CallManager callManager;
+    private CallManager callManager;
     private ArrayList<Handler> registeredHandlers;
 
     // Events generated internally:
@@ -78,7 +76,7 @@ class CallStateMonitor extends Handler {
     /**
      * Register for call state notifications with the CallManager.
      */
-    protected void registerForNotifications() {
+    private void registerForNotifications() {
         callManager.registerForNewRingingConnection(this, PHONE_NEW_RINGING_CONNECTION, null);
         callManager.registerForPreciseCallStateChanged(this, PHONE_STATE_CHANGED, null);
         callManager.registerForDisconnect(this, PHONE_DISCONNECT, null);
@@ -94,7 +92,6 @@ class CallStateMonitor extends Handler {
         callManager.registerForResendIncallMute(this, PHONE_RESEND_MUTE, null);
         callManager.registerForPostDialCharacter(this, PHONE_ON_DIAL_CHARS, null);
         callManager.registerForSuppServiceNotification(this, PHONE_SUPP_SERVICE_NOTIFY, null);
-        callManager.registerForCallModify(this, PHONE_CALL_MODIFY, null);
     }
 
     public void addListener(Handler handler) {
@@ -140,7 +137,6 @@ class CallStateMonitor extends Handler {
         callManager.unregisterForInCallVoicePrivacyOff(this);
         callManager.unregisterForPostDialCharacter(this);
         callManager.unregisterForSuppServiceNotification(this);
-        callManager.unregisterForCallModify(this);
 
         registerForNotifications();
     }

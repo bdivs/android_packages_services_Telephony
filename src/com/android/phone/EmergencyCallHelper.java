@@ -16,7 +16,6 @@
 
 package com.android.phone;
 
-import com.android.internal.telephony.Call;
 import com.android.internal.telephony.CallManager;
 import com.android.internal.telephony.Connection;
 import com.android.internal.telephony.Phone;
@@ -266,7 +265,6 @@ public class EmergencyCallHelper extends Handler {
     private void onRetryTimeout() {
         PhoneConstants.State phoneState = mCM.getState();
         int serviceState = mCM.getDefaultPhone().getServiceState().getState();
-        Call.State callState = mCM.getActiveFgCallState();
         if (DBG) log("onRetryTimeout():  phone state " + phoneState
                      + ", service state " + serviceState
                      + ", mNumRetriesSoFar = " + mNumRetriesSoFar);
@@ -280,10 +278,8 @@ public class EmergencyCallHelper extends Handler {
         // - If the radio is still powered off, try powering it on again.
 
         if (phoneState == PhoneConstants.State.OFFHOOK) {
-            if (callState != Call.State.DIALING) {
-                if (DBG) log("- onRetryTimeout: Call is active!  Cleaning up...");
-                cleanup();
-            }
+            if (DBG) log("- onRetryTimeout: Call is active!  Cleaning up...");
+            cleanup();
             return;
         }
 
@@ -366,12 +362,10 @@ public class EmergencyCallHelper extends Handler {
         // airplane mode" sequence from the beginning again!)
 
         registerForDisconnect();  // Get notified when this call disconnects
-        int sub = mApp.getVoiceSubscriptionInService();
-        Phone phone = mApp.getPhone(sub);
 
         if (DBG) log("- placing call to '" + mNumber + "'...");
         int callStatus = PhoneUtils.placeCall(mApp,
-                                              phone,
+                                              mCM.getDefaultPhone(),
                                               mNumber,
                                               null,  // contactUri
                                               true); // isEmergencyCall
