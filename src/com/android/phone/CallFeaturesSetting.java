@@ -1,7 +1,4 @@
 /*
- * Copyright (c) 2012, The Linux Foundation. All rights reserved.
- * Not a Contribution.
- *
  * Copyright (C) 2008 The Android Open Source Project
  * Blacklist - Copyright (C) 2013 The CyanogenMod Project
  *
@@ -32,6 +29,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.content.pm.ActivityInfo;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.database.Cursor;
@@ -53,15 +51,12 @@ import android.preference.PreferenceActivity;
 import android.preference.PreferenceGroup;
 import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
+import android.preference.SwitchPreference;
 import android.provider.ContactsContract.CommonDataKinds;
 import android.provider.MediaStore;
 import android.provider.Settings;
-import android.provider.Settings.SettingNotFoundException;
 import android.telephony.PhoneNumberUtils;
-import android.text.Spannable;
-import android.text.SpannableString;
 import android.text.TextUtils;
-import android.text.style.TypefaceSpan;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.WindowManager;
@@ -75,6 +70,8 @@ import com.android.internal.telephony.cdma.TtyIntent;
 import com.android.internal.telephony.util.BlacklistUtils;
 import com.android.phone.sip.SipSharedPreferences;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -202,6 +199,18 @@ public class CallFeaturesSetting extends PreferenceActivity
     private static final String SIP_SETTINGS_CATEGORY_KEY =
             "sip_settings_category_key";
 
+    private static final String BUTTON_NON_INTRUSIVE_INCALL_KEY = "button_non_intrusive_incall";
+
+
+    private static final String SWITCH_ENABLE_FORWARD_LOOKUP =
+            "switch_enable_forward_lookup";
+    private static final String SWITCH_ENABLE_REVERSE_LOOKUP =
+            "switch_enable_reverse_lookup";
+    private static final String BUTTON_CHOOSE_FORWARD_LOOKUP_PROVIDER =
+            "button_choose_forward_lookup_provider";
+    private static final String BUTTON_CHOOSE_REVERSE_LOOKUP_PROVIDER =
+            "button_choose_reverse_lookup_provider";
+
     private Intent mContactListIntent;
 
     /** Event for Async voicemail change call */
@@ -215,9 +224,6 @@ public class CallFeaturesSetting extends PreferenceActivity
     // preferred TTY mode
     // Phone.TTY_MODE_xxx
     static final int preferredTtyMode = Phone.TTY_MODE_OFF;
-
-    // dialog identifiers for TTY
-    private static final int TTY_SET_RESPONSE_ERROR = 800;
 
     public static final String HAC_KEY = "HACSetting";
     public static final String HAC_VAL_ON = "ON";
@@ -295,6 +301,12 @@ public class CallFeaturesSetting extends PreferenceActivity
     private CheckBoxPreference mVoicemailNotificationVibrate;
     private SipSharedPreferences mSipSharedPreferences;
     private PreferenceScreen mButtonBlacklist;
+    private CheckBoxPreference mNonIntrusiveInCall;
+    private ListPreference mFlipAction;
+    private SwitchPreference mEnableForwardLookup;
+    private SwitchPreference mEnableReverseLookup;
+    private ListPreference mChooseForwardLookupProvider;
+    private ListPreference mChooseReverseLookupProvider;
 
     private class VoiceMailProvider {
         public VoiceMailProvider(String name, Intent intent) {
@@ -314,6 +326,7 @@ public class CallFeaturesSetting extends PreferenceActivity
         CommandsInterface.CF_REASON_NO_REPLY,
         CommandsInterface.CF_REASON_NOT_REACHABLE
     };
+    private static final CharSequence FLIP_ACTION_KEY = "flip_action";
 
     private class VoiceMailProviderSettings {
         /**
@@ -510,10 +523,6 @@ public class CallFeaturesSetting extends PreferenceActivity
         } else if (preference == mButtonDTMF) {
             return true;
         } else if (preference == mButtonTTY) {
-            if (PhoneUtils.isImsVtCallPresent()) {
-                // TTY Mode change is not allowed during a VT call
-                showDialog(TTY_SET_RESPONSE_ERROR);
-            }
             return true;
         } else if (preference == mButtonNoiseSuppression) {
             int nsp = mButtonNoiseSuppression.isChecked() ? 1 : 0;
@@ -560,6 +569,10 @@ public class CallFeaturesSetting extends PreferenceActivity
                 // This should let the preference use default behavior in the xml.
                 return false;
             }
+        } else if (preference == mNonIntrusiveInCall){
+            Settings.System.putInt(getContentResolver(), Settings.System.NON_INTRUSIVE_INCALL,
+                    mNonIntrusiveInCall.isChecked() ? 1 : 0);
+            return true;
         }
         return false;
     }
@@ -627,9 +640,27 @@ public class CallFeaturesSetting extends PreferenceActivity
             }
         } else if (preference == mButtonSipCallOptions) {
             handleSipCallOptionsChange(objValue);
+        }else if (preference == mFlipAction) {
+            updateFlipActionSummary((String) objValue);
+        } else if (preference == mEnableForwardLookup
+                || preference == mEnableReverseLookup) {
+            saveLookupProviderSwitches(preference, (Boolean) objValue);
+        } else if (preference == mChooseForwardLookupProvider
+                || preference == mChooseReverseLookupProvider) {
+            saveLookupProviders(preference, (String) objValue);
         }
         // always let the preference setting proceed.
         return true;
+    }
+
+    private void updateFlipActionSummary(String action) {
+        int i = Integer.parseInt(action);
+        if (mFlipAction != null) {
+            String[] summaries = getResources().getStringArray(R.array.flip_action_summary_entries);
+            mFlipAction.setSummary(getString(R.string.flip_action_summary, summaries[i]));
+            Settings.System.putInt(getContentResolver(), Settings.System.FLIP_ACTION_KEY,
+                    i);
+        }
     }
 
     @Override
@@ -1458,22 +1489,8 @@ public class CallFeaturesSetting extends PreferenceActivity
                     (id == VOICEMAIL_REVERTING_DIALOG ? R.string.reverting_settings :
                     R.string.reading_settings)));
             return dialog;
-        } else if (id == TTY_SET_RESPONSE_ERROR) {
-
-            AlertDialog.Builder b = new AlertDialog.Builder(this);
-
-            b.setTitle(getText(R.string.tty_mode_option_title));
-            b.setMessage(getText(R.string.tty_mode_not_allowed_vt_call));
-            b.setIconAttribute(android.R.attr.alertDialogIcon);
-            b.setPositiveButton(R.string.ok, this);
-            b.setCancelable(false);
-            AlertDialog dialog = b.create();
-
-            // make the dialog more obvious by bluring the background.
-            dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND);
-
-            return dialog;
         }
+
 
         return null;
     }
@@ -1597,6 +1614,8 @@ public class CallFeaturesSetting extends PreferenceActivity
             initVoiceMailProviders();
         }
 
+        mFlipAction = (ListPreference) findPreference(FLIP_ACTION_KEY);
+
         if (mVibrateWhenRinging != null) {
             Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
             if (vibrator != null && vibrator.hasVibrator()) {
@@ -1650,14 +1669,22 @@ public class CallFeaturesSetting extends PreferenceActivity
                 mButtonTTY = null;
             }
         }
-
+        
         if (mButtonNoiseSuppression != null) {
-            if (getResources().getBoolean(R.bool.has_in_call_noise_suppression)) {
-                mButtonNoiseSuppression.setOnPreferenceChangeListener(this);
-            } else {
-                prefSet.removePreference(mButtonNoiseSuppression);
-                mButtonNoiseSuppression = null;
-            }
+             if (getResources().getBoolean(R.bool.has_in_call_noise_suppression)) {
+                 mButtonNoiseSuppression.setOnPreferenceChangeListener(this);
+             } else {
+                 prefSet.removePreference(mButtonNoiseSuppression);
+                 mButtonNoiseSuppression = null;
+             }
+         }
+         
+        if (mFlipAction != null) {
+            mFlipAction.setOnPreferenceChangeListener(this);
+            int flipAction = Settings.System.getInt(getContentResolver(),
+                    Settings.System.FLIP_ACTION_KEY, 0);
+            mFlipAction.setDefaultValue(String.valueOf(flipAction));
+
         }
 
         if (!getResources().getBoolean(R.bool.world_phone)) {
@@ -1682,6 +1709,31 @@ public class CallFeaturesSetting extends PreferenceActivity
                 throw new IllegalStateException("Unexpected phone type: " + phoneType);
             }
         }
+
+        mNonIntrusiveInCall = (CheckBoxPreference) findPreference(BUTTON_NON_INTRUSIVE_INCALL_KEY);
+        mNonIntrusiveInCall.setChecked(Settings.System.getInt(getContentResolver(),
+                Settings.System.NON_INTRUSIVE_INCALL, 1) == 0 ? false : true);
+
+        mEnableForwardLookup = (SwitchPreference)
+                findPreference(SWITCH_ENABLE_FORWARD_LOOKUP);
+        mEnableReverseLookup = (SwitchPreference)
+                findPreference(SWITCH_ENABLE_REVERSE_LOOKUP);
+
+        mEnableForwardLookup.setOnPreferenceChangeListener(this);
+        mEnableReverseLookup.setOnPreferenceChangeListener(this);
+
+        restoreLookupProviderSwitches();
+
+        mChooseForwardLookupProvider = (ListPreference)
+                findPreference(BUTTON_CHOOSE_FORWARD_LOOKUP_PROVIDER);
+        mChooseReverseLookupProvider = (ListPreference)
+                findPreference(BUTTON_CHOOSE_REVERSE_LOOKUP_PROVIDER);
+
+        mChooseForwardLookupProvider.setOnPreferenceChangeListener(this);
+        mChooseReverseLookupProvider.setOnPreferenceChangeListener(this);
+
+        initLookupProviders();
+        restoreLookupProviders();
 
         // create intent to bring up contact list
         mContactListIntent = new Intent(Intent.ACTION_GET_CONTENT);
@@ -1710,7 +1762,6 @@ public class CallFeaturesSetting extends PreferenceActivity
         updateVoiceNumberField();
         mVMProviderSettingsForced = false;
         createSipCallSettings();
-        createImsSettings();
 
         mRingtoneLookupRunnable = new Runnable() {
             @Override
@@ -1809,10 +1860,6 @@ public class CallFeaturesSetting extends PreferenceActivity
         }
     }
 
-    private void createImsSettings() {
-        addPreferencesFromResource(R.xml.ims_settings_category);
-    }
-
     // Gets the call options for SIP depending on whether SIP is allowed only
     // on Wi-Fi only; also make the other options preference invisible.
     private ListPreference getSipCallOptionPreference() {
@@ -1888,8 +1935,15 @@ public class CallFeaturesSetting extends PreferenceActivity
                     BUTTON_VOICEMAIL_NOTIFICATION_VIBRATE_KEY, false));
         }
 
+        if (mFlipAction != null) {
+            updateFlipActionSummary(mFlipAction.getValue());
+        }
+
         lookupRingtoneName();
         updateBlacklistSummary();
+
+        restoreLookupProviderSwitches();
+        restoreLookupProviders();
     }
 
     private void updateBlacklistSummary() {
@@ -2040,6 +2094,127 @@ public class CallFeaturesSetting extends PreferenceActivity
 
             mVoicemailNotificationVibrate.setEnabled(true);
         }
+    }
+
+    private void saveLookupProviderSwitches(Preference pref, Boolean newValue) {
+        if (DBG) log("saveLookupProviderSwitches()");
+
+        if (pref == mEnableForwardLookup) {
+            Settings.System.putInt(getContentResolver(),
+                    Settings.System.ENABLE_FORWARD_LOOKUP,
+                    newValue ? 1 : 0);
+        } else if (pref == mEnableReverseLookup) {
+            Settings.System.putInt(getContentResolver(),
+                    Settings.System.ENABLE_REVERSE_LOOKUP,
+                    newValue ? 1 : 0);
+        }
+    }
+
+    private void initLookupProviders() {
+        if (DBG) log("initLookupProviders()");
+
+        String[] fEntries = getApplicationContext().getResources()
+                .getStringArray(R.array.forward_lookup_provider_names);
+        String[] fEntryValues = getApplicationContext().getResources()
+                .getStringArray(R.array.forward_lookup_providers);
+
+        String[] rEntries = getApplicationContext().getResources()
+                .getStringArray(R.array.reverse_lookup_provider_names);
+        String[] rEntryValues = getApplicationContext().getResources()
+                .getStringArray(R.array.reverse_lookup_providers);
+
+        if (isGmsInstalled(getApplicationContext())) {
+            if (DBG) log("Google Play Services is NOT installed");
+
+            List<String> listRNames = new ArrayList<String>(
+                    Arrays.asList(rEntries));
+            List<String> listRValues = new ArrayList<String>(
+                    Arrays.asList(rEntryValues));
+
+            int index = listRValues.indexOf("Google");
+
+            if (index != -1) {
+                if (DBG) log("Removing Google from the reverse lookup providers");
+
+                listRNames.remove(index);
+                listRValues.remove(index);
+            }
+
+            rEntries = listRNames.toArray(new String[0]);
+            rEntryValues = listRValues.toArray(new String[0]);
+        }
+
+        mChooseReverseLookupProvider.setEntries(rEntries);
+        mChooseReverseLookupProvider.setEntryValues(rEntryValues);
+
+        mChooseForwardLookupProvider.setEntries(fEntries);
+        mChooseForwardLookupProvider.setEntryValues(fEntryValues);
+    }
+
+    private void restoreLookupProviderSwitches() {
+        if (DBG) log("restoreLookupProviderSwitches()");
+
+        mEnableForwardLookup.setChecked(Settings.System.getInt(
+                getContentResolver(),
+                Settings.System.ENABLE_FORWARD_LOOKUP, 1) != 0 ? true : false);
+        mEnableReverseLookup.setChecked(Settings.System.getInt(
+                getContentResolver(),
+                Settings.System.ENABLE_REVERSE_LOOKUP, 1) != 0 ? true : false);
+    }
+
+    private void restoreLookupProviders() {
+        if (DBG) log("restoreLookupProviders()");
+
+        String fProvider = Settings.System.getString(
+                getContentResolver(),
+                Settings.System.FORWARD_LOOKUP_PROVIDER);
+
+        if (fProvider == null) {
+            mChooseForwardLookupProvider.setValueIndex(0);
+            saveLookupProviders(mChooseForwardLookupProvider,
+                    (String) mChooseForwardLookupProvider.getEntryValues()[0]);
+        } else {
+            mChooseForwardLookupProvider.setValue(fProvider);
+        }
+
+        String rProvider = Settings.System.getString(
+                getContentResolver(),
+                Settings.System.REVERSE_LOOKUP_PROVIDER);
+
+        if (rProvider == null) {
+            mChooseReverseLookupProvider.setValueIndex(0);
+            saveLookupProviders(mChooseReverseLookupProvider,
+                    (String) mChooseReverseLookupProvider.getEntryValues()[0]);
+        } else {
+            mChooseReverseLookupProvider.setValue(rProvider);
+        }
+    }
+
+    private void saveLookupProviders(Preference pref, String newValue) {
+        if (DBG) log("saveLookupProviders()");
+
+        if (pref == mChooseForwardLookupProvider) {
+            Settings.System.putString(
+                    getContentResolver(),
+                    Settings.System.FORWARD_LOOKUP_PROVIDER,
+                    newValue);
+        } else if (pref == mChooseReverseLookupProvider) {
+            Settings.System.putString(
+                    getContentResolver(),
+                    Settings.System.REVERSE_LOOKUP_PROVIDER,
+                    newValue);
+        }
+    }
+
+    private static boolean isGmsInstalled(Context context) {
+        PackageManager pm = context.getPackageManager();
+        List<PackageInfo> packages = pm.getInstalledPackages(0);
+        for (PackageInfo info : packages) {
+            if (info.packageName.equals("com.google.android.gms")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

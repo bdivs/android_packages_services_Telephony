@@ -13,8 +13,6 @@ import com.android.internal.telephony.PhoneFactory;
 
 import java.util.ArrayList;
 
-import static com.android.internal.telephony.MSimConstants.SUBSCRIPTION_KEY;
-
 public class GsmUmtsAdditionalCallOptions extends
         TimeConsumingPreferenceActivity {
     private static final String LOG_TAG = "GsmUmtsAdditionalCallOptions";
@@ -30,17 +28,13 @@ public class GsmUmtsAdditionalCallOptions extends
 
     private final ArrayList<Preference> mPreferences = new ArrayList<Preference>();
     private int mInitIndex= 0;
-    private int mSubscription = 0;
 
     @Override
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
 
         addPreferencesFromResource(R.xml.gsm_umts_additional_options);
-        mSubscription = getIntent().getIntExtra(SUBSCRIPTION_KEY,
-                PhoneGlobals.getInstance().getDefaultSubscription());
-        if (DBG)
-            Log.d(LOG_TAG, "GsmUmtsAdditionalCallOptions onCreate, subscription: " + mSubscription);
+
         PreferenceScreen prefSet = getPreferenceScreen();
         mCLIRButton = (CLIRListPreference) prefSet.findPreference(BUTTON_CLIR_KEY);
         mCWButton = (CallWaitingCheckBoxPreference) prefSet.findPreference(BUTTON_CW_KEY);
@@ -52,20 +46,21 @@ public class GsmUmtsAdditionalCallOptions extends
 
         if (icicle == null) {
             if (DBG) Log.d(LOG_TAG, "start to init ");
-            mCLIRButton.init(this, false, mSubscription);
+            mCLIRButton.init(this, false);
         } else {
             if (DBG) Log.d(LOG_TAG, "restore stored states");
             mInitIndex = mPreferences.size();
-            mCLIRButton.init(this, true, mSubscription);
-            mCWButton.init(this, true, mSubscription);
-            mCWButton.init(this, true, mSubscription);
+            mCLIRButton.init(this, true);
+            mCWButton.init(this, true);
+            mMSISDNButton.init(this, true);
+
             int[] clirArray = icicle.getIntArray(mCLIRButton.getKey());
             if (clirArray != null) {
                 if (DBG) Log.d(LOG_TAG, "onCreate:  clirArray[0]="
                         + clirArray[0] + ", clirArray[1]=" + clirArray[1]);
                 mCLIRButton.handleGetCLIRResult(clirArray);
             } else {
-                mCLIRButton.init(this, false, mSubscription);
+                mCLIRButton.init(this, false);
             }
         }
 
@@ -91,7 +86,7 @@ public class GsmUmtsAdditionalCallOptions extends
             mInitIndex++;
             Preference pref = mPreferences.get(mInitIndex);
             if (pref instanceof CallWaitingCheckBoxPreference) {
-                ((CallWaitingCheckBoxPreference) pref).init(this, false, mSubscription);
+                ((CallWaitingCheckBoxPreference) pref).init(this, false);
             } else if (pref instanceof MSISDNEditPreference) {
                 ((MSISDNEditPreference) pref).init(this, false);
             }
