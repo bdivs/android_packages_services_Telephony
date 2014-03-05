@@ -14,7 +14,10 @@
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- -->	
+ -->
+
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+	
  <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
      <string name="preference_category_interface">Interface</string>
      <string name="non_intrusive_incall_title">Non intrusive</string>
