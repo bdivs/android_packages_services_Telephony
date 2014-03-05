@@ -204,6 +204,9 @@ public class CallFeaturesSetting extends PreferenceActivity
 
     private static final String BUTTON_NON_INTRUSIVE_INCALL_KEY = "button_non_intrusive_incall";
 
+<<<<<<< HEAD
+=======
+    private static final String FLIP_ACTION_KEY = "flip_action";
 
     private static final String SWITCH_ENABLE_FORWARD_LOOKUP =
             "switch_enable_forward_lookup";
@@ -214,6 +217,7 @@ public class CallFeaturesSetting extends PreferenceActivity
     private static final String BUTTON_CHOOSE_REVERSE_LOOKUP_PROVIDER =
             "button_choose_reverse_lookup_provider";
 
+>>>>>>> 4add46a... Telephony: Open source google dialer and more (3/5)
     private Intent mContactListIntent;
 
     /** Event for Async voicemail change call */
@@ -650,14 +654,22 @@ public class CallFeaturesSetting extends PreferenceActivity
             }
         } else if (preference == mButtonSipCallOptions) {
             handleSipCallOptionsChange(objValue);
+<<<<<<< HEAD
         }else if (preference == mFlipAction) {
             updateFlipActionSummary((String) objValue);
+=======
+        } else if (preference == mFlipAction) {
+            int index = mFlipAction.findIndexOfValue((String) objValue);
+            Settings.System.putInt(getContentResolver(),
+                Settings.System.CALL_FLIP_ACTION_KEY, index);
+            updateFlipActionSummary(index);
         } else if (preference == mEnableForwardLookup
                 || preference == mEnableReverseLookup) {
             saveLookupProviderSwitches(preference, (Boolean) objValue);
         } else if (preference == mChooseForwardLookupProvider
                 || preference == mChooseReverseLookupProvider) {
             saveLookupProviders(preference, (String) objValue);
+>>>>>>> 4add46a... Telephony: Open source google dialer and more (3/5)
         }
         // always let the preference setting proceed.
         return true;
