@@ -254,6 +254,7 @@
             android:targetClass="com.android.phone.CdmaCallOptions"/>
     </PreferenceScreen>
 
+<<<<<<< HEAD
     <PreferenceCategory
         android:key="preference_category_interface_key"
         android:title="@string/preference_category_interface"
@@ -266,5 +267,13 @@
             android:persistent="false"
             android:defaultValue="true" />
     </PreferenceCategory>
+=======
+    <CheckBoxPreference
+        android:key="button_smart_phone_call"
+        android:title="@string/smart_phone_call_title"
+        android:summary="@string/smart_phone_call_summary"
+        android:persistent="false"
+        android:defaultValue="false" />
+>>>>>>> 098b78e... [4/4] Telephony: Smart Phone Call
 
 </PreferenceScreen>
