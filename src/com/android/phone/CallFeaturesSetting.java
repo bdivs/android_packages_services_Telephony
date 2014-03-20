@@ -1716,16 +1716,16 @@ public class CallFeaturesSetting extends PreferenceActivity
                 throw new IllegalStateException("Unexpected phone type: " + phoneType);
             }
         }
-
+        
+        mSmartCall = (CheckBoxPreference) findPreference(BUTTON_SMART_PHONE_CALL_KEY);
+        mSmartCall.setChecked(Settings.System.getInt(getContentResolver(),
+                Settings.System.SMART_PHONE_CALLER, 0) != 0 ? true : false);
+                
         mNonIntrusiveInCall = (CheckBoxPreference) findPreference(BUTTON_NON_INTRUSIVE_INCALL_KEY);
         mNonIntrusiveInCall.setChecked(Settings.System.getInt(getContentResolver(),
                 Settings.System.NON_INTRUSIVE_INCALL, 1) == 0 ? false : true);
 
         mEnableForwardLookup = (SwitchPreference)
-
-        mSmartCall = (CheckBoxPreference) findPreference(BUTTON_SMART_PHONE_CALL_KEY);
-        mSmartCall.setChecked(Settings.System.getInt(getContentResolver(),
-                Settings.System.SMART_PHONE_CALLER, 0) != 0 ? true : false);
 
                 findPreference(SWITCH_ENABLE_FORWARD_LOOKUP);
         mEnableReverseLookup = (SwitchPreference)
