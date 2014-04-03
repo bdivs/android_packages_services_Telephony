@@ -68,12 +68,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     private static final int CMD_ANSWER_RINGING_CALL = 4;
     private static final int CMD_END_CALL = 5;  // not used yet
     private static final int CMD_SILENCE_RINGER = 6;
-<<<<<<< HEAD
     private static final int CMD_TOGGLE_2G = 7; // used in screen action implementation
-=======
     private static final int MESSAGE_GET_PREFERRED_NETWORK_TYPE = 7;
     private static final int MESSAGE_SET_PREFERRED_NETWORK_TYPE = 8;
->>>>>>> 4ca0fff... part 2 of LTE toggle support
 
     /** The singleton instance. */
     private static PhoneInterfaceManager sInstance;
