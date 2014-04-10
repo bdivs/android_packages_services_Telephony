@@ -647,14 +647,14 @@ public class CallFeaturesSetting extends PreferenceActivity
             }
         } else if (preference == mButtonSipCallOptions) {
             handleSipCallOptionsChange(objValue);
-        }else if (preference == mFlipAction) {
-            updateFlipActionSummary((String) objValue);
         } else if (preference == mEnableForwardLookup
                 || preference == mEnableReverseLookup) {
             saveLookupProviderSwitches(preference, (Boolean) objValue);
         } else if (preference == mChooseForwardLookupProvider
                 || preference == mChooseReverseLookupProvider) {
             saveLookupProviders(preference, (String) objValue);
+        } else if (preference == mFlipAction) {
+            updateFlipActionSummary((String) objValue);
         }
         // always let the preference setting proceed.
         return true;
