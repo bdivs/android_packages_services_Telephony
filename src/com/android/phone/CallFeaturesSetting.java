@@ -210,7 +210,8 @@ public class CallFeaturesSetting extends PreferenceActivity
             "button_choose_forward_lookup_provider";
     private static final String BUTTON_CHOOSE_REVERSE_LOOKUP_PROVIDER =
             "button_choose_reverse_lookup_provider";
-
+    private static final String FLIP_ACTION_KEY = "flip_action";
+    
     private static final String BUTTON_SMART_PHONE_CALL_KEY = "button_smart_phone_call";
 
     private Intent mContactListIntent;
@@ -329,7 +330,6 @@ public class CallFeaturesSetting extends PreferenceActivity
         CommandsInterface.CF_REASON_NO_REPLY,
         CommandsInterface.CF_REASON_NOT_REACHABLE
     };
-    private static final CharSequence FLIP_ACTION_KEY = "flip_action";
 
     private class VoiceMailProviderSettings {
         /**
@@ -654,21 +654,22 @@ public class CallFeaturesSetting extends PreferenceActivity
                 || preference == mChooseReverseLookupProvider) {
             saveLookupProviders(preference, (String) objValue);
         } else if (preference == mFlipAction) {
-            updateFlipActionSummary((String) objValue);
+            int index = mFlipAction.findIndexOfValue((String) objValue);
+            Settings.System.putInt(getContentResolver(),
+                Settings.System.FLIP_ACTION_KEY, index);
+            updateFlipActionSummary(index);
         }
         // always let the preference setting proceed.
         return true;
     }
 
-    private void updateFlipActionSummary(String action) {
-        int i = Integer.parseInt(action);
+    private void updateFlipActionSummary(int value) {
         if (mFlipAction != null) {
             String[] summaries = getResources().getStringArray(R.array.flip_action_summary_entries);
-            mFlipAction.setSummary(getString(R.string.flip_action_summary, summaries[i]));
-            Settings.System.putInt(getContentResolver(), Settings.System.FLIP_ACTION_KEY,
-                    i);
+            mFlipAction.setSummary(getString(R.string.flip_action_summary, summaries[value]));
         }
     }
+
 
     @Override
     public void onDialogClosed(EditPhoneNumberPreference preference, int buttonClicked) {
@@ -1610,6 +1611,7 @@ public class CallFeaturesSetting extends PreferenceActivity
         mButtonNoiseSuppression = (CheckBoxPreference) findPreference(BUTTON_NOISE_SUPPRESSION_KEY);
         mVoicemailProviders = (ListPreference) findPreference(BUTTON_VOICEMAIL_PROVIDER_KEY);
         mButtonBlacklist = (PreferenceScreen) findPreference(BUTTON_BLACKLIST);
+        mFlipAction = (ListPreference) findPreference(FLIP_ACTION_KEY);
 
         if (mVoicemailProviders != null) {
             mVoicemailProviders.setOnPreferenceChangeListener(this);
@@ -1620,8 +1622,6 @@ public class CallFeaturesSetting extends PreferenceActivity
                     (CheckBoxPreference) findPreference(BUTTON_VOICEMAIL_NOTIFICATION_VIBRATE_KEY);
             initVoiceMailProviders();
         }
-
-        mFlipAction = (ListPreference) findPreference(FLIP_ACTION_KEY);
 
         if (mVibrateWhenRinging != null) {
             Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
@@ -1685,15 +1685,11 @@ public class CallFeaturesSetting extends PreferenceActivity
                  mButtonNoiseSuppression = null;
              }
          }
-         
+
         if (mFlipAction != null) {
             mFlipAction.setOnPreferenceChangeListener(this);
-            int flipAction = Settings.System.getInt(getContentResolver(),
-                    Settings.System.FLIP_ACTION_KEY, 0);
-            mFlipAction.setDefaultValue(String.valueOf(flipAction));
-
         }
-
+        
         if (!getResources().getBoolean(R.bool.world_phone)) {
             Preference options = prefSet.findPreference(BUTTON_CDMA_OPTIONS);
             if (options != null)
@@ -1939,16 +1935,19 @@ public class CallFeaturesSetting extends PreferenceActivity
             mButtonTTY.setValue(Integer.toString(settingsTtyMode));
             updatePreferredTtyModeSummary(settingsTtyMode);
         }
-
+        
+        if (mFlipAction != null) {
+            int flipAction = Settings.System.getInt(getContentResolver(),
+                    Settings.System.FLIP_ACTION_KEY, 2);
+            mFlipAction.setValue(String.valueOf(flipAction));
+            updateFlipActionSummary(flipAction);
+        }
+        
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(
                 mPhone.getContext());
         if (migrateVoicemailVibrationSettingsIfNeeded(prefs)) {
             mVoicemailNotificationVibrate.setChecked(prefs.getBoolean(
                     BUTTON_VOICEMAIL_NOTIFICATION_VIBRATE_KEY, false));
-        }
-
-        if (mFlipAction != null) {
-            updateFlipActionSummary(mFlipAction.getValue());
         }
 
         lookupRingtoneName();
