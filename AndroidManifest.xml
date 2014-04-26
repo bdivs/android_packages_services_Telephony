@@ -572,6 +572,18 @@
         <!-- service to dump telephony information -->
         <service android:name="HfaService" android:exported="false"/>
 
+<<<<<<< HEAD
+=======
+        <activity android:name="SetSubscription"
+            android:label="@string/set_subscription"
+            android:theme="@android:style/Theme.Holo.Dialog"
+            android:configChanges="orientation|keyboardHidden">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+            </intent-filter>
+        </activity>
+
+>>>>>>> 3c3454b... telephony: Remove "managed roaming" feature
     </application>
 
     <permission android:name="com.android.phone.CHANGE_NETWORK_MODE"
