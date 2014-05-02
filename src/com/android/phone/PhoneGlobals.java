@@ -74,15 +74,6 @@ import com.android.phone.WiredHeadsetManager.WiredHeadsetListener;
 import com.android.server.sip.SipService;
 import com.android.services.telephony.common.AudioMode;
 
-<<<<<<< HEAD
-=======
-import org.codeaurora.ims.IImsService;
-import org.codeaurora.ims.IImsServiceListener;
-
-import static com.android.internal.telephony.MSimConstants.DEFAULT_SUBSCRIPTION;
-import org.codeaurora.ims.csvt.ICsvtService;
-
->>>>>>> 3c3454b... telephony: Remove "managed roaming" feature
 /**
  * Global state for the telephony subsystem when running in the primary
  * phone process.
